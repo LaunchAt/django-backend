@@ -1,0 +1,16 @@
+# .gitignore
+
+.*
+*.log
+*.mo
+*.pyc
+__pycache__
+db.sqlite3
+jwks.json
+Pipfile.lock
+/media
+/static
+!.editorconfig
+!.flake8
+!.github
+!.gitignore

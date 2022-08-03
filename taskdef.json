@@ -1,0 +1,65 @@
+{
+  "containerDefinitions": [
+    {
+      "essential": true,
+      "image": "<UBUNTU_IMAGE_URI>",
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "<UBUNTU_LOG_GROUP>",
+          "awslogs-region": "<REGION>",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "mountPoints": [
+        {
+          "readOnly": false,
+          "containerPath": "/var/run/gunicorn",
+          "sourceVolume": "gunicorn"
+        }
+      ],
+      "name": "ubuntu"
+    },
+    {
+      "essential": true,
+      "image": "<NGINX_IMAGE_URI>",
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "<NGINX_LOG_GROUP>",
+          "awslogs-region": "<REGION>",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "mountPoints": [
+        {
+          "readOnly": false,
+          "containerPath": "/var/run/gunicorn",
+          "sourceVolume": "gunicorn"
+        }
+      ],
+      "name": "nginx",
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "protocol": "tcp",
+          "containerPort": 80
+        }
+      ]
+    }
+  ],
+  "cpu": "<CPU>",
+  "executionRoleArn": "<TASK_EXECUTION_ROLE_ARN>",
+  "family": "<TASK_FAMILY>",
+  "memory": "<MEMORY>",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "taskRoleArn": "<TASK_ROLE_ARN>",
+  "volumes": [
+    {
+      "name": "gunicorn"
+    }
+  ]
+}

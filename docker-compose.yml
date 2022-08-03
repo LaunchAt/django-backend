@@ -1,0 +1,32 @@
+version: '3.8'
+
+networks:
+  django-network:
+    name: django-network
+
+services:
+  nginx:
+    build: nginx
+    depends_on:
+      - ubuntu
+    image: $NGINX_IMAGE_URL
+    networks:
+      - django-network
+    ports:
+      - "80:80"
+    restart: always
+    volumes:
+      - gunicorn:/var/run/gunicorn
+
+  ubuntu:
+    build:
+      context: .
+    image: $UBUNTU_IMAGE_URL
+    networks:
+      - django-network
+    volumes:
+      - gunicorn:/var/run/gunicorn
+
+volumes:
+  gunicorn:
+    driver: local

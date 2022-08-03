@@ -1,0 +1,58 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo Setting environment variables...
+      - echo "DEBUG=\"$DEBUG\"" > .env
+      - echo "DATABASE_URL=\"$DATABASE_URL\"" >> .env
+      - echo "READONLY_DATABASE_URL=\"$READONLY_DATABASE_URL\"" >> .env
+      - echo "SECRET_KEY=\"$SECRET_KEY\"" >> .env
+      - echo "SERVICE_CLIENT_URL=\"$SERVICE_CLIENT_URL\"" >> .env
+      - echo "SERVICE_SITE_URL=\"$SERVICE_SITE_URL\"" >> .env
+      - echo "AWS_ACCESS_KEY_ID=\"$AWS_ACCESS_KEY_ID\"" >> .env
+      - echo "AWS_SECRET_ACCESS_KEY=\"$AWS_SECRET_ACCESS_KEY\"" >> .env
+      - echo "AWS_S3_BUCKET=\"$AWS_S3_BUCKET\"" >> .env
+      - echo "AWS_S3_CUSTOM_DOMAIN=\"$AWS_S3_CUSTOM_DOMAIN\"" >> .env
+      - echo "DEFAULT_EMAIL=\"$DEFAULT_EMAIL\"" >> .env
+      - echo "AWS_COGNITO_POOL_ID=\"$AWS_COGNITO_POOL_ID\"" >> .env
+      - echo "AWS_COGNITO_CLIENT_ID=\"$AWS_COGNITO_CLIENT_ID\"" >> .env
+      - echo Setting Amazon Cognito JSON Key...
+      - echo "$JWKS_JSON" > jwks.json
+
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo Logging in to Docker Hub...
+      - echo $DOCKER_HUB_PASSWORD | docker login -u $DOCKER_HUB_ID --password-stdin
+
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker-compose build
+
+  post_build:
+    commands:
+      - echo Pushing the Docker image...
+      - export NGINX_IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$NGINX_IMAGE_REPO_NAME:latest
+      - export UBUNTU_IMAGE_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$UBUNTU_IMAGE_REPO_NAME:latest
+      - docker-compose push
+      - |
+        sed -i                                                                                             \
+            -e s@\<CPU\>@$CPU@                                                                             \
+            -e s@\<MEMORY\>@$MEMORY@                                                                       \
+            -e s@\<NGINX_IMAGE_URI\>@$NGINX_IMAGE_URI@                                                     \
+            -e s@\<NGINX_LOG_GROUP\>@$NGINX_LOG_GROUP@                                                     \
+            -e s@\<UBUNTU_IMAGE_URI\>@$UBUNTU_IMAGE_URI@                                                   \
+            -e s@\<UBUNTU_LOG_GROUP\>@$UBUNTU_LOG_GROUP@                                                   \
+            -e s@\<REGION\>@$AWS_DEFAULT_REGION@                                                           \
+            -e s@\<TASK_EXECUTION_ROLE_ARN\>@$arn:aws:iam::$AWS_ACCOUNT_ID:role/$TASK_EXECUTION_ROLE_NAME@ \
+            -e s@\<TASK_FAMILY\>@$TASK_FAMILY_NAME@                                                        \
+            -e s@\<TASK_ROLE_ARN\>@$arn:aws:iam::$AWS_ACCOUNT_ID:role/$TASK_ROLE_NAME@                     \
+            taskdef.json
+
+artifacts:
+  files:
+    - appspec.yml
+    - taskdef.json
